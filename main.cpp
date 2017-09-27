@@ -3,20 +3,15 @@
 #include <list>
 #include <string>
 #include <map>
+#include <vector>
+
+const std::vector<std::string> explode(const std::string& str, const char& c);
 
 //https://stackoverflow.com/questions/4702732/the-program-cant-start-because-libgcc-s-dw2-1-dll-is-missing
 
 int main(int argc , char *argv[])
 {
-    // Arguments check
-    if (argc < 3 || argc > 3)
-    {
-        printf("ERROR: Not enough arguments.\n");
-        printf("long_path_parser.exe [INPUT_FILE] [OUTPUT_FILE]\n");
-        return 1;
-    }
-
-    // Local variable setup
+    // Declarations
     std::ifstream ifs(argv[1]); // Input stream
     std::ofstream ofs(argv[2]); // Output stream
     std::list<std::string>::const_iterator iterator; // Iterator for looping through results
@@ -25,6 +20,14 @@ int main(int argc , char *argv[])
     std::list<int> path_required_cuts;
     std::string line;
     std::map<std::string, int, int> path_map;
+
+    // Arguments check
+    if (argc < 3 || argc > 3)
+    {
+        printf("ERROR: Not enough arguments.\n");
+        printf("long_path_parser.exe [INPUT_FILE] [OUTPUT_FILE]\n");
+        return 1;
+    }
 
     // Check file streams open
     if (!ifs.is_open())
@@ -39,10 +42,21 @@ int main(int argc , char *argv[])
     }
 
     // Loop through each line of input file
-    while (std::getline(ifs, line)) {
+    while (std::getline(ifs, line))
+    {
+        int max_len = 0;
+        int total_line_len = line.length();
+        int line_over_limit = line.length() - 200;
 
-        for (std::string seg : line.Split("\\")) {
-            std::cout << seg << std::endl;
+        for (auto segment : explode(line, '\\'))
+        {
+            if (segment.length > max_len)
+            {
+                max_len = segment.length
+
+            }
+
+            std::cout << segment << std::endl;
         }
 
         system("pause");
@@ -72,4 +86,20 @@ int main(int argc , char *argv[])
     printf("Unique long paths: %i", paths.size());
 
     return 0;
+}
+
+/// Exploded a string into segments using a given delimeter (similar to PHP explode)
+const std::vector<std::string> explode(const std::string& str, const char& c)
+{
+    std::string buffer{""};
+    std::vector<std::string> vec;
+
+    for (auto seg : str)
+    {
+        if (seg != c) buffer += seg; else // If segment isnt delimenter (c) add to buffer
+        if (seg == c && buffer != "") { vec.push_back(buffer); buffer = "";} // if segment container delimenter and buffer is not empty add to vector
+    }
+    if (buffer != "") vec.push_back(buffer); // Store any remaining buffer content to vector
+
+    return vec;
 }
