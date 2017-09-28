@@ -1,2 +1,2 @@
-# long_paths_parser
-Detects long windows file paths 
+# Long Paths Parser (LPP)
+Detects and displays long file paths: Displays main offending long path names and filenames.
