@@ -5,6 +5,8 @@
 #include <map>
 #include <vector>
 
+#include <algorithm>
+
 const std::vector<std::string> explode(const std::string& str, const char& c);
 
 //https://stackoverflow.com/questions/4702732/the-program-cant-start-because-libgcc-s-dw2-1-dll-is-missing
@@ -44,19 +46,28 @@ int main(int argc , char *argv[])
     // Loop through each line of input file
     while (std::getline(ifs, line))
     {
-        int max_len = 0;
-        int total_line_len = line.length();
+        int path_len = line.length();
         int line_over_limit = line.length() - 200;
 
-        for (auto segment : explode(line, '\\'))
+        // Loop through each part of path (eg C:\test\test2\test3, C:\test\test2, c:\test)
+        std::string cur_path = line;
+        std::string cur_folder = line.substr(line.find_last_of("\\") + 1);
+        std::string longest_folder = "";
+        int max_len = 0;
+        int cur_len = 0;
+        for (int x = 0; x < std::count(line.begin(), line.end(), '\\'); x++)
         {
-            if (segment.length > max_len)
-            {
-                max_len = segment.length
+            cur_len = cur_folder.size();
 
-            }
+            if (cur_len > max_len && (path_len - cur_len) < 200)
+                longest_folder = cur_folder;
 
-            std::cout << segment << std::endl;
+            std::cout << cur_path << std::endl;
+            std::cout << cur_folder << std::endl;
+            std::cout << longest_folder + "\n" << std::endl;
+
+            cur_path = line.substr(0, cur_path.find_last_of("\\"));
+            cur_folder = cur_path.substr(cur_path.find_last_of("\\") + 1);
         }
 
         system("pause");
