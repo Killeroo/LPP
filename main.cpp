@@ -16,12 +16,9 @@ int main(int argc , char *argv[])
     // Declarations
     std::ifstream ifs(argv[1]); // Input stream
     std::ofstream ofs(argv[2]); // Output stream
-    std::list<std::string>::const_iterator iterator; // Iterator for looping through results
-    std::list<std::string> paths;
-    std::list<int> path_lengths;
-    std::list<int> path_required_cuts;
+    std::map<std::string, int>::const_iterator map_iterator;
+    std::map<std::string, int> offending_paths;
     std::string line;
-    std::map<std::string, int, int> path_map;
 
     // Arguments check
     if (argc < 3 || argc > 3)
@@ -47,54 +44,55 @@ int main(int argc , char *argv[])
     while (std::getline(ifs, line))
     {
         int path_len = line.length();
-        int line_over_limit = line.length() - 200;
 
-        // Loop through each part of path (eg C:\test\test2\test3, C:\test\test2, c:\test)
+        // Loop through each part of path (eg C:\test\test2\test3, C:\test\test2, c:\test) and find longest part (offending path)
         std::string cur_path = line;
-        std::string cur_folder = line.substr(line.find_last_of("\\") + 1);
+        std::string cur_path_section = line.substr(line.find_last_of("\\") + 1);
         std::string longest_folder = "";
         int max_len = 0;
-        int cur_len = 0;
+        int cur_len = cur_path_section.size();
         for (int x = 0; x < std::count(line.begin(), line.end(), '\\'); x++)
         {
-            cur_len = cur_folder.size();
-
+            // Compare against current longest section of path
             if (cur_len > max_len && (path_len - cur_len) < 200)
-                longest_folder = cur_folder;
+            {
+                longest_folder = cur_path;
+                max_len = cur_len;
+            }
 
-            std::cout << cur_path << std::endl;
-            std::cout << cur_folder << std::endl;
-            std::cout << longest_folder + "\n" << std::endl;
-
+            // Load next section of path
             cur_path = line.substr(0, cur_path.find_last_of("\\"));
-            cur_folder = cur_path.substr(cur_path.find_last_of("\\") + 1);
+            cur_path_section = cur_path.substr(cur_path.find_last_of("\\") + 1);
+            cur_len = cur_path_section.size();
         }
 
-        system("pause");
+        // If longest_folder could not be found, save whole path
+        if (longest_folder == "")
+            longest_folder = line;
 
-        // Find last segment of path
-        std::string small_line = line.substr(0, line.find_last_of("\\"));
-
-        // Add path to end of paths list
-        paths.push_back(small_line);
-        path_lengths.push_back(line.length());
-        path_required_cuts.push_back(line.length() - 200);
+        // If path already exists in map
+        if (offending_paths.find(longest_folder) != offending_paths.end())//std::find(offending_paths.begin(), offending_paths.end(), longest_folder) != offending_paths.end())
+        {
+            // Update
+            int count = offending_paths.find(longest_folder)->second; // Poor optimisation (find twice?)
+            offending_paths.at(longest_folder) = count + 1;
+        }
+        else
+        {
+            // Add
+            offending_paths[longest_folder] = 1;
+        }
     }
 
-    // Clear duplicates
-    paths.unique();
-
-    // Loop through results
-    for (iterator = paths.begin(); iterator != paths.end(); ++iterator) {
-        ofs << *iterator << std::endl;
-    }
+    for (auto& x: offending_paths)
+        //std::cout << "path: " << x.first << " dependants: " << x.second << std::endl;
+        ofs << "path: " << x.first << " dependants: " << x.second << std::endl;
 
     // Cleanup
     ofs.close();
     ifs.close();
 
     printf("Outputted file: %s \n", argv[2]);
-    printf("Unique long paths: %i", paths.size());
 
     return 0;
 }
