@@ -121,7 +121,7 @@ std::string find_longest_path_section(std::string path)
     specifying an offending path, else we are inputting an offending/long
     file name at the given path.
 */
-void add_to_map(std::map path_map, std::string path, std::bool is_path)
+void add_to_map(std::map<std::string, int>& path_map, std::string path, bool is_path)
 {
     if (path_map.find(path) != path_map.end()) {
         int count = path_map.find(path)->second; // Poor optimisation (find twice?)
