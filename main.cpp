@@ -1,10 +1,3 @@
-#include <iostream>
-#include <fstream>
-#include <list>
-#include <string>
-#include <map>
-#include <vector>
-#include <algorithm>
 
 #include <llp.h>
 
@@ -13,32 +6,91 @@ int main(int argc , char *argv[])
     // Declarations
     std::ifstream ifs(argv[1]); // Input stream
     std::ofstream ofs(argv[2]); // Output stream
-    std::map<std::string, int>::const_iterator map_iterator;
-    std::map<std::string, int> offending_paths;//std::pair<int, int>> offending_paths; // path, dependant paths, dependant files
+    std::map<std::string, int> offending_paths;
+
+    log("Long Paths Parser v1.0");
+
+    // Sanity checks
+    if (!check_arguments(argc)) return 1;
+    if (!check_file_streams_open(ifs, ofs)) return 1;
+
+    offending_paths = loop_through_file(ifs);
+
+    write_map_to_file(offending_paths, ofs);
+
+    log(argv[2]);
+
+    // Cleanup
+    ofs.close();
+    ifs.close();
+
+    return 0;
+}
+
+/**
+    Checks number of arguments is same as number of required arguments
+    (also checks format). Returns true if arguments are correct, false
+    if not enough arguments have been supplied
+*/
+bool check_arguments(int argc)
+{
+    log("check_arguments");
+
+    if (argc < 3 || argc > 3) {
+        log("ERROR: Not enough arguments");
+        log("USAGE: long_path_parser.exe [INPUT_FILE] [OUTPUT_FILE]");
+        return false;
+    }
+
+    return true;
+}
+
+/**
+    Checks that both input file stream (for reading from the file) and
+    output file stream (for outputting the 'cleaned' file) are open and connected
+    to a file. Returns true if streams are open, false if streams are closed
+*/
+bool check_file_streams_open(std::ifstream& input, std::ofstream& output)
+{
+    log("check_file_streams_open");
+
+    if (!input.is_open()) {
+        log("ERROR: Input file could not be opened. Check this file exists.");
+        return false;
+    } else if (!output.is_open()) {
+        log("ERROR: Output file could not be created. Check your privilege.");
+        return false;
+    }
+
+    return true;
+}
+
+/**
+    Loops through a file, processing it line by line and returns results in a map.
+
+    For each path in the file the longest part of each path will be determined
+    where the longest section (EG C:\test\paths contains the sections C:, test and paths)
+    is longer than all other sections and the length of the section from the total path length
+    brings the length to under 200 characters.
+    If these conditions are not met the whole path is saved. The relative is saved in a map containing
+    all 'offending' sections. These sections are either added or updated in the map, keeping track
+    of how many other paths the section is causing to go over the 200 character limit.
+
+    NOTE: The path of the longest section is saved in the map, so if the longest section in a path is
+    a folder called VERY_VERY_LONG_FOLDER then the path up till that folder will be saved in the map as so:
+    'C:\path\up\to\and\including\VERY_VERY_LONG_FOLDER'
+
+    SIDENOTE: In this case the provide file is expected to be a text file and to contain
+    one long path per line (over 200 characters).
+*/
+std::map<std::string, int> loop_through_file(std::ifstream& file)
+{
+    std::map<std::string, int> long_paths;
     std::string line;
 
-    // Arguments check
-    if (argc < 3 || argc > 3)
-    {
-        printf("ERROR: Not enough arguments.\n");
-        printf("long_path_parser.exe [INPUT_FILE] [OUTPUT_FILE]\n");
-        return 1;
-    }
+    log("Cleaning file...");
 
-    // Check file streams open
-    if (!ifs.is_open())
-    {
-        printf("ERROR: %s could not be opened. Check this file exists.", argv[1]);
-        return 1;
-    }
-    else if (!ofs.is_open())
-    {
-        printf("ERROR: %s could not be created. Check your privilege.", argv[2]);
-        return 1;
-    }
-
-    // Loop through each line of input file
-    while (std::getline(ifs, line)) {
+    while (std::getline(file, line)) {
         bool long_path = true; // Specifies longest section is folder or file
 
         std::string longest_folder = find_longest_path_section(line);
@@ -49,20 +101,10 @@ int main(int argc , char *argv[])
             longest_folder = line.substr(0, line.find_last_of("\\"));
         }
 
-        add_to_map(offending_paths, longest_folder, long_path);
+        add_to_map(long_paths, longest_folder, long_path);
     }
 
-    for (auto& x: offending_paths)
-        //std::cout << "path: " << x.first << " dependants: " << x.second << std::endl;
-        ofs << "path: " << x.first << " dependants: " << x.second << std::endl;
-
-    // Cleanup
-    ofs.close();
-    ifs.close();
-
-    printf("Outputted file: %s \n", argv[2]);
-
-    return 0;
+    return long_paths;
 }
 
 /**
@@ -129,4 +171,23 @@ void add_to_map(std::map<std::string, int>& path_map, std::string path, bool is_
     } else {
         path_map[path] = 1;
     }
+}
+
+/**
+    Writes a map to a file, using a provided output file stream
+*/
+void write_map_to_file(std::map<std::string, int>& m, std::ofstream& output)
+{
+    log("Creating new file...");
+
+    for (auto& x: m)
+        output << "path: " << x.first << " dependants: " << x.second << std::endl;
+}
+
+/**
+    Logs a message to standard output
+*/
+void log(char* msg)
+{
+    printf("[LLP] %s \n", msg);
 }
