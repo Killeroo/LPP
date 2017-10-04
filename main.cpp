@@ -4,12 +4,9 @@
 #include <string>
 #include <map>
 #include <vector>
-
 #include <algorithm>
 
-const std::vector<std::string> explode(const std::string& str, const char& c);
-
-//https://stackoverflow.com/questions/4702732/the-program-cant-start-because-libgcc-s-dw2-1-dll-is-missing
+#include <llp.h>
 
 int main(int argc , char *argv[])
 {
@@ -17,7 +14,7 @@ int main(int argc , char *argv[])
     std::ifstream ifs(argv[1]); // Input stream
     std::ofstream ofs(argv[2]); // Output stream
     std::map<std::string, int>::const_iterator map_iterator;
-    std::map<std::string, int> offending_paths; // path, dependant paths, dependant files
+    std::map<std::string, int> offending_paths;//std::pair<int, int>> offending_paths; // path, dependant paths, dependant files
     std::string line;
 
     // Arguments check
@@ -41,51 +38,18 @@ int main(int argc , char *argv[])
     }
 
     // Loop through each line of input file
-    while (std::getline(ifs, line))
-    {
-        int path_len = line.length();
+    while (std::getline(ifs, line)) {
+        bool long_path = true; // Specifies longest section is folder or file
 
-        // Loop through each part of path (eg C:\test\test2\test3, C:\test\test2, c:\test) and find longest part (offending path)
-        std::string cur_path = line;
-        std::string cur_path_section = line.substr(line.find_last_of("\\") + 1);
-        std::string longest_folder = "";
-        int max_len = 0;
-        int cur_len = cur_path_section.size();
-        for (int x = 0; x < std::count(line.begin(), line.end(), '\\'); x++)
-        {
-            // Compare against current longest section of path
-            if (cur_len > max_len && (path_len - cur_len) < 200)
-            {
-                longest_folder = cur_path;
-                max_len = cur_len;
-            }
+        std::string longest_folder = find_longest_path_section(line);
 
-            // Load next section of path
-            cur_path = line.substr(0, cur_path.find_last_of("\\"));
-            cur_path_section = cur_path.substr(cur_path.find_last_of("\\") + 1);
-            cur_len = cur_path_section.size();
-        }
-
-        // If longest_folder could not be found, save whole path
-        if (longest_folder == "")
-            longest_folder = line;
-
-        // If file is offending path, store the path (excluding file)
-        if (longest_folder == line)
+        // If the offending/long path is due to a long filename, store the directory that contains the file
+        if (longest_folder == line) {
+            long_path = false;
             longest_folder = line.substr(0, line.find_last_of("\\"));
+        }
 
-        // If path already exists in map
-        if (offending_paths.find(longest_folder) != offending_paths.end())//std::find(offending_paths.begin(), offending_paths.end(), longest_folder) != offending_paths.end())
-        {
-            // Update
-            int count = offending_paths.find(longest_folder)->second; // Poor optimisation (find twice?)
-            offending_paths.at(longest_folder) = count + 1;
-        }
-        else
-        {
-            // Add
-            offending_paths[longest_folder] = 1;
-        }
+        add_to_map(offending_paths, longest_folder, long_path);
     }
 
     for (auto& x: offending_paths)
@@ -101,18 +65,68 @@ int main(int argc , char *argv[])
     return 0;
 }
 
-/// Exploded a string into segments using a given delimeter (similar to PHP explode)
-const std::vector<std::string> explode(const std::string& str, const char& c)
+/**
+    Finds longest section/folder of a given path, and returns the path of
+    the folder.
+
+    Works by splitting whole path into parts(sections), we then check if the
+    current section is longer than any other sections AND if the length of
+    the current section minus the total path length is less than the
+    acceptable length threshold (under 200 characters).
+    If not then the whole path is returned.
+
+    EG. C:\test\long\very_long_section\some\more\paths\stuff.txt
+        would return:
+        C:\test\long\very_long_section
+        OR
+        C:\test\long\path\reallylongfilename.txt
+        would return:
+        C:\test\long\path\reallylongfilename.txt
+*/
+std::string find_longest_path_section(std::string path)
 {
-    std::string buffer{""};
-    std::vector<std::string> vec;
+    std::string cur_path = path;
+    std::string path_section = path.substr(path.find_last_of("\\") + 1);
+    std::string longest_folder = "";
+    int path_len = path.length();
+    int max_len = 0;
+    int cur_len = path_section.size();
 
-    for (auto seg : str)
-    {
-        if (seg != c) buffer += seg; else // If segment isnt delimenter (c) add to buffer
-        if (seg == c && buffer != "") { vec.push_back(buffer); buffer = "";} // if segment container delimenter and buffer is not empty add to vector
+    for (int x = 0; x < std::count(path.begin(), path.end(), '\\'); x++) {
+
+        if (cur_len > max_len && (path_len - cur_len) < 200) {
+            longest_folder = cur_path;
+            max_len = cur_len;
+        }
+
+        // Prep next path section
+        cur_path = path.substr(0, cur_path.find_last_of("\\"));
+        path_section = cur_path.substr(cur_path.find_last_of("\\") + 1);
+        cur_len = path_section.size();
     }
-    if (buffer != "") vec.push_back(buffer); // Store any remaining buffer content to vector
 
-    return vec;
+    if (longest_folder == "")
+        longest_folder = path;
+
+    return longest_folder;
+}
+
+/**
+    Adds a given path to a map of paths.
+
+    We also check if the path already exists in the map, if it does
+    then we UPDATE the appropriate entry, else we ADD a new entry.
+    We also add whether the inputted path is that of a long/offending folder
+    or path, this is done using the is_path bool, if this is true we are
+    specifying an offending path, else we are inputting an offending/long
+    file name at the given path.
+*/
+void add_to_map(std::map path_map, std::string path, std::bool is_path)
+{
+    if (path_map.find(path) != path_map.end()) {
+        int count = path_map.find(path)->second; // Poor optimisation (find twice?)
+        path_map.at(path) = count + 1;
+    } else {
+        path_map[path] = 1;
+    }
 }
