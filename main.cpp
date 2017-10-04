@@ -17,7 +17,7 @@ int main(int argc , char *argv[])
     std::ifstream ifs(argv[1]); // Input stream
     std::ofstream ofs(argv[2]); // Output stream
     std::map<std::string, int>::const_iterator map_iterator;
-    std::map<std::string, int> offending_paths;
+    std::map<std::string, int> offending_paths; // path, dependant paths, dependant files
     std::string line;
 
     // Arguments check
@@ -69,6 +69,10 @@ int main(int argc , char *argv[])
         // If longest_folder could not be found, save whole path
         if (longest_folder == "")
             longest_folder = line;
+
+        // If file is offending path, store the path (excluding file)
+        if (longest_folder == line)
+            longest_folder = line.substr(0, line.find_last_of("\\"));
 
         // If path already exists in map
         if (offending_paths.find(longest_folder) != offending_paths.end())//std::find(offending_paths.begin(), offending_paths.end(), longest_folder) != offending_paths.end())
