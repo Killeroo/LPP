@@ -6,7 +6,7 @@ int main(int argc , char *argv[])
     // Declarations
     std::ifstream ifs(argv[1]); // Input stream
     std::ofstream ofs(argv[2]); // Output stream
-    std::map<std::string, int> offending_paths;
+    std::map<std::string, path_info> offending_paths;
 
     log("Long Paths Parser v1.0");
 
@@ -83,9 +83,9 @@ bool check_file_streams_open(std::ifstream& input, std::ofstream& output)
     SIDENOTE: In this case the provide file is expected to be a text file and to contain
     one long path per line (over 200 characters).
 */
-std::map<std::string, int> loop_through_file(std::ifstream& file)
+std::map<std::string, path_info> loop_through_file(std::ifstream& file)
 {
-    std::map<std::string, int> long_paths;
+    std::map<std::string, path_info> long_paths;
     std::string line;
 
     log("Cleaning file...");
@@ -154,34 +154,53 @@ std::string find_longest_path_section(std::string path)
 }
 
 /**
-    Adds a given path to a map of paths.
+    Adds a given path to a map of paths. Also updates path data using
+    the path_info struct (which stores how many dependant paths, files, length etc)
 
     We also check if the path already exists in the map, if it does
-    then we UPDATE the appropriate entry, else we ADD a new entry.
-    We also add whether the inputted path is that of a long/offending folder
-    or path, this is done using the is_path bool, if this is true we are
-    specifying an offending path, else we are inputting an offending/long
-    file name at the given path.
+    then we UPDATE the path data, else we ADD a new set of data for the path.
 */
-void add_to_map(std::map<std::string, int>& path_map, std::string path, bool is_path)
+void add_to_map(std::map<std::string, path_info>& path_map, std::string path, bool is_path)
 {
+    path_info data;
+
     if (path_map.find(path) != path_map.end()) {
-        int count = path_map.find(path)->second; // Poor optimisation (find twice?)
-        path_map.at(path) = count + 1;
+        data = path_map.find(path)->second; // Poor optimisation (find twice?)
+
+        if (is_path)
+            data.dependant_paths++;
+        else
+            data.dependant_files++;
+
+        path_map.at(path) = data;
     } else {
-        path_map[path] = 1;
+        if (is_path)
+            data.dependant_paths++;
+        else
+            data.dependant_files++;
+
+        data.len = path.length();
+        path_map[path] = data;
     }
 }
 
 /**
     Writes a map to a file, using a provided output file stream
 */
-void write_map_to_file(std::map<std::string, int>& m, std::ofstream& output)
+void write_map_to_file(std::map<std::string, path_info>& m, std::ofstream& output)
 {
     log("Creating new file...");
 
     for (auto& x: m)
-        output << "path: " << x.first << " dependants: " << x.second << std::endl;
+    {
+        path_info data = x.second;
+        output << "path: " << x.first
+               << " length: " << data.len
+               << " path_dependants: " << data.dependant_paths
+               << " file_dependants: " << data.dependant_files
+               << std::endl;
+    }
+
 }
 
 /**
