@@ -5,7 +5,7 @@ int main(int argc , char *argv[])
 {
     // Declarations
     std::ifstream ifs(argv[1]); // Input stream
-    std::ofstream ofs(argv[2]); // Output stream
+    std::ofstream ofs("cleaned_paths.csv");//argv[2]); // Output stream
     std::map<std::string, path_info> offending_paths;
 
     log("Long Paths Parser v1.0");
@@ -18,7 +18,8 @@ int main(int argc , char *argv[])
 
     write_map_to_file(offending_paths, ofs);
 
-    log(argv[2]);
+    log("Created .\\cleaned_paths.csv");
+    log("Finished. Bye =^-^=");
 
     // Cleanup
     ofs.close();
@@ -36,9 +37,9 @@ bool check_arguments(int argc)
 {
     log("check_arguments");
 
-    if (argc < 3 || argc > 3) {
-        log("ERROR: Not enough arguments");
-        log("USAGE: long_path_parser.exe [INPUT_FILE] [OUTPUT_FILE]");
+    if (argc < 2 || argc > 2) {
+        log("ERROR: Incorrect argument count");
+        log("USAGE: long_path_parser.exe [INPUT_FILE]");
         return false;
     }
 
@@ -185,20 +186,22 @@ void add_to_map(std::map<std::string, path_info>& path_map, std::string path, bo
 }
 
 /**
-    Writes a map to a file, using a provided output file stream
+    Writes a map to a CSV file, using a provided output file stream
+
+    In a CSV file columns are seperated by a ',' and each new row is specified
+    by a new line character '\n'
 */
 void write_map_to_file(std::map<std::string, path_info>& m, std::ofstream& output)
 {
-    log("Creating new file...");
+    log("Exporting to CSV file...");
 
-    for (auto& x: m)
-    {
+    // Print column headers
+    output << "Path, Length, Depending Folders, Depending Files,\n";
+
+    for (auto& x: m) {
         path_info data = x.second;
-        output << "path: " << x.first
-               << " length: " << data.len
-               << " path_dependants: " << data.dependant_paths
-               << " file_dependants: " << data.dependant_files
-               << std::endl;
+
+        output << x.first << "," << data.len << "," << data.dependant_paths << "," << data.dependant_files << ",\n";
     }
 
 }

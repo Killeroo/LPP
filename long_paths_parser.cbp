@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="C:\backup\chroma_main\long_paths.txt C:\backup\chroma_main\long_paths_CLEANED.txt" />
+				<Option parameters="C:\backup\chroma_main\long_paths.txt" />
 				<Compiler>
 					<Add option="-g" />
 					<Add option="-static-libgcc" />
